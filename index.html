@@ -37,18 +37,22 @@
         .checkbox-row input { width: 18px; height: 18px; }
         .hidden { display: none; }
         .field-hint { font-size: 12px; color: #888; margin-top: -2px; margin-bottom: 6px; }
+        .stats-block {
+            background: #f9f9f9; border-radius: 8px; padding: 10px; margin: 16px 0;
+            font-size: 14px; color: #333; text-align: center;
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div class="container">
     <h1>Юрист.Просто</h1>
     <p class="subtitle">Доступная юридическая помощь. 20 видов документов.</p>
+
+    <!-- Блок статистики -->
     <div class="stats-block">
-    <h3>📊 Статистика сервиса</h3>
-    <div id="statsContent">Загрузка...</div>
-    <div id="totalDocs" style="font-weight: bold; text-align: center; margin-top: 8px;"></div>
-</div>
+        <div id="totalDocs">Всего документов подготовлено: <strong>0 шт.</strong></div>
+    </div>
+
     <label for="service">Выберите услугу</label>
     <select id="service">
         <option value="isk">Иск о взыскании долга — 2 800 ₽</option>
@@ -78,6 +82,7 @@
     <label for="clientPhone">Телефон *</label>
     <input type="tel" id="clientPhone" placeholder="+7 900 000-00-00" required>
 
+    <!-- Здесь будут появляться поля выбранной услуги -->
     <div id="dynamicFields"></div>
 
     <div class="checkbox-row">
@@ -91,7 +96,7 @@
 </div>
 
 <script>
-    // Цены и названия услуг
+    // ==================== НАСТРОЙКИ ====================
     const prices = {
         isk: 2800, hod: 2400, mir: 1000, prikaz: 1500, vozrazhenie: 2000,
         prokuratura: 1500, pretenziya: 1000, alimenty_zayav: 1500,
@@ -305,10 +310,10 @@
         `
     };
 
+    // ==================== ЛОГИКА ФОРМЫ ====================
     function buildSpecialFields(service) {
         const container = document.getElementById('dynamicFields');
         container.innerHTML = fields[service] || '';
-        // Обработчик для "Другое" в иске
         if (service === 'isk') {
             const osnovanie = document.getElementById('osnovanie');
             const other = document.getElementById('osnovanieOther');
@@ -326,12 +331,44 @@
         buildSpecialFields(s);
     });
 
-    // Инициализация
-    buildSpecialFields('isk');
+    buildSpecialFields('isk'); // инициализация
 
-    // Кнопка отправки (заглушка)
+    // ==================== СТАТИСТИКА (localStorage) ====================
+    const STATS_KEY = 'yurist_stats';
+
+    function loadStats() {
+        const totalDocs = document.getElementById('totalDocs');
+        let stats = JSON.parse(localStorage.getItem(STATS_KEY));
+        if (!stats) {
+            stats = {};
+            ['isk', 'hod', 'mir', 'prikaz', 'vozrazhenie', 'prokuratura', 'pretenziya', 
+             'alimenty_zayav', 'alimenty_sogl', 'razvod', 'neustoika', 'otzyv_prikaz', 
+             'chastnaya', 'dogovor_zaim', 'dogovor_uslug', 'kopiya', 'rospotrebnadzor', 
+             'trud', 'apellyaciya', 'kassaciya'].forEach(s => stats[s] = 0);
+            localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        }
+        const total = Object.values(stats).reduce((a, b) => a + b, 0);
+        totalDocs.innerHTML = `Всего документов подготовлено: <strong>${total} шт.</strong>`;
+    }
+
+    // Функция для вызова после успешной оплаты (пока заглушка)
+    window.incrementStat = function(serviceType) {
+        let stats = JSON.parse(localStorage.getItem(STATS_KEY));
+        if (!stats) {
+            loadStats();
+            stats = JSON.parse(localStorage.getItem(STATS_KEY));
+        }
+        stats[serviceType] = (stats[serviceType] || 0) + 1;
+        localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+        loadStats();
+    };
+
+    loadStats();
+
+    // ==================== ЗАГЛУШКА ОПЛАТЫ ====================
     document.getElementById('submitBtn').addEventListener('click', function() {
-        alert('Оплата и заявка будут здесь после подключения VK Pay.');
+        const service = document.getElementById('service').value;
+        alert(`Заглушка оплаты. Услуга: ${service}, сумма: ${prices[service]} ₽. Здесь будет VK Pay.`);
     });
 </script>
 </body>
